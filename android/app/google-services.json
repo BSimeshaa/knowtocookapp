@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "902706379788",
+    "project_id": "knowtocook",
+    "storage_bucket": "knowtocook.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:902706379788:android:d550dbcd84124c2d6f8229",
+        "android_client_info": {
+          "package_name": "com.example.knowtocook"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyvJaCuv7m6f_jmzKBHJ8XjievTRaGEpw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

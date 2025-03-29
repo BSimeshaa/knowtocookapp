@@ -1,18 +1,17 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:knowtocook/pages/home_page.dart';
+import 'dart:io';
 
-
-class AccountCreationScreen extends StatefulWidget {
+class AccountCreationPage extends StatefulWidget {
   @override
-  _AccountCreationScreenState createState() => _AccountCreationScreenState();
+  _AccountCreationPageState createState() => _AccountCreationPageState();
 }
 
-class _AccountCreationScreenState extends State<AccountCreationScreen> {
+class _AccountCreationPageState extends State<AccountCreationPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _bioController = TextEditingController();
   File? _profileImage;
@@ -22,7 +21,7 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // Function to pick an image from the gallery
+  // method to select an image from the gallery
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
@@ -33,7 +32,7 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
     }
   }
 
-  // Function to upload profile image to Firebase Storage
+  // method to store the profile pic
   Future<String?> _uploadProfileImage(String userId) async {
     if (_profileImage == null) return null;
 
@@ -49,7 +48,7 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
     }
   }
 
-  // Function to store user details in Firestore
+  // method to store user details in the db
   Future<void> _saveUserData() async {
     if (_usernameController.text.isEmpty) {
       ScaffoldMessenger.of(context)
@@ -62,7 +61,7 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
     });
 
     try {
-      String userId = _auth.currentUser!.uid; // Get logged-in user's ID
+      String userId = _auth.currentUser!.uid;
       String? profileImageUrl = await _uploadProfileImage(userId);
 
       await _firestore.collection('users').doc(userId).set({
@@ -74,11 +73,10 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
         'followers': 0,
       });
 
-      // Navigate to User Profile Screen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => HomeScreen(),
+          builder: (context) => HomePage(userId: '',),
         ),
       );
     } catch (e) {

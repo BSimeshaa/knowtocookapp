@@ -3,20 +3,76 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:knowtocook/pages/home_page.dart';
 import 'package:knowtocook/pages/login_page.dart';
+import 'package:knowtocook/pages/notification_page.dart';
+import 'package:knowtocook/pages/post_creation.dart';
+import 'package:knowtocook/pages/search_page.dart';
 
-class UserProfileScreen extends StatefulWidget {
+class UserProfilePage extends StatefulWidget {
   final String userId;
+  final String currentUserId;
+  final String targetUserId;
 
-  const UserProfileScreen({Key? key, required this.userId}) : super(key: key);
+  const UserProfilePage({Key? key, required this.userId, required this.currentUserId, required this.targetUserId}) : super(key: key);
 
   @override
-  _UserProfileScreenState createState() => _UserProfileScreenState();
+  _UserProfilePageState createState() => _UserProfilePageState();
 }
 
-class _UserProfileScreenState extends State<UserProfileScreen> {
+class _UserProfilePageState extends State<UserProfilePage> {
+
+  int _selectedIndex = 4;
+
+  final List<Widget> _pages = [
+
+    Center(child: Text("Home Page")),
+    Center(child: Text("Search Page")),
+    Center(child: Text("Post Page")),
+    Center(child: Text("Notification Page")),
+    Center(child: Text("Profile Page"),)
+  ];
+
+  //_onIconClicked method is used to handle the navigation of the BottomNavigationBar
+  void _onIconClicked(int index) async {
+    User? currentUser = FirebaseAuth.instance.currentUser;
+
+    if (index == 0 && currentUser != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomePage(userId: currentUser.uid),
+        ),
+      );
+    } else if (index == 2 && currentUser != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RecipeCreationPage(userId: currentUser.uid),
+        ),
+      );
+    } else if (index == 3 && currentUser != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => NotificationsPage(userId: currentUser.uid, currentUserId: currentUser.uid, targetUserId: '',),
+        ),
+      );
+    }else if (index == 1 && currentUser != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SearchPage(userId: currentUser.uid),
+        ),
+      );
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
+  }
+
+
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -29,43 +85,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   int following = 0;
   int followers = 0;
   bool isLoading = true;
-  File? _newProfileImage;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadUserProfile();
-  }
-  int _selectedIndex = 0;
 
-  // List of screens to display based on BottomNavigationBar selection
-  final List<Widget> _screens = [
-    // Add other screens here
-    Center(child: Text("Home Screen")),
-    Center(child: Text("Search Screen")),
-    Center(child: Text("Post Screen")),
-    Center(child: Text("Notification Screen")),
-  ];
-
-  // Method to handle navigation when a BottomNavigationBar item is tapped
-  void _onItemTapped(int index) async {
-    if (index == 0) {
-      User? currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser != null) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HomeScreen(),
-          ),
-        );
-      }
-    } else {
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
-  }
-  // Load user profile data from Firestore
+  // loads user's data from db
   Future<void> _loadUserProfile() async {
     try {
       DocumentSnapshot userDoc =
@@ -87,42 +109,57 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-  // Function to sign out the user
+  // method to sign out from the profile
   Future<void> _signOut() async {
     await _auth.signOut();
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => LoginPage()), // Redirect to login
+      MaterialPageRoute(builder: (context) => LoginPage()),
     );
   }
 
-  // Function to select and upload a new profile picture
-  Future<void> _updateProfilePicture() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    if (image == null) return;
+  Future<String?> _showImageUrlDialog(BuildContext context) async {
+    TextEditingController controller = TextEditingController();
+    return await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Enter Image URL"),
+          content: TextField(
+            controller: controller,
+            decoration: InputDecoration(hintText: "https://example.com/image.jpg"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, controller.text),
+              child: Text("Update"),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
-    setState(() {
-      _newProfileImage = File(image.path);
-    });
-
+  Future<void> _updateProfilePicture(String imageUrl) async {
     try {
       String userId = _auth.currentUser!.uid;
-      TaskSnapshot uploadTask =
-      await _storage.ref('profile_images/$userId.jpg').putFile(_newProfileImage!);
-      String newProfileImageUrl = await uploadTask.ref.getDownloadURL();
 
       await _firestore.collection('users').doc(userId).update({
-        'profileImage': newProfileImageUrl,
+        'profileImage': imageUrl,
       });
 
       setState(() {
-        profileImageUrl = newProfileImageUrl;
+        profileImageUrl = imageUrl;
       });
     } catch (e) {
       print("Error updating profile picture: $e");
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -159,22 +196,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               child: Column(
                 children: [
                   GestureDetector(
-                    onTap: _updateProfilePicture,
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundImage: profileImageUrl.isNotEmpty
-                          ? NetworkImage(profileImageUrl)
-                          : const AssetImage("assets/default_avatar.png") as ImageProvider,
-                      child: const Align(
-                        alignment: Alignment.bottomRight,
-                        child: CircleAvatar(
-                          radius: 14,
-                          backgroundColor: Colors.blue,
-                          child: Icon(Icons.camera_alt, size: 16, color: Colors.white),
-                        ),
+                  onTap: () async {
+                    String? imageUrl = await _showImageUrlDialog(context);
+                    if (imageUrl != null && imageUrl.isNotEmpty) {
+                    _updateProfilePicture(imageUrl);
+                    }
+                    },
+                      child: CircleAvatar(
+                        backgroundImage: profileImageUrl.isNotEmpty
+                            ? NetworkImage(profileImageUrl)
+                            : AssetImage('assets/default_avatar.png') as ImageProvider,
+                        radius: 50,
                       ),
                     ),
-                  ),
                   const SizedBox(height: 10),
                   Text(username, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 5),
@@ -207,7 +241,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ],
                   ),
                   SizedBox(
-                    height: 300, // Adjust based on content
+                    height: 300,
                     child: TabBarView(
                       children: [
                         _buildUserRecipes(),
@@ -226,7 +260,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       bottomNavigationBar: BottomNavigationBar(
         selectedItemColor: Colors.green,
         unselectedItemColor: Colors.grey,
-        currentIndex: 4, // Profile tab selected
+        currentIndex: 4,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
@@ -238,7 +272,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  // Helper function to display user stats
+
   Widget _buildStatColumn(String label, int count) {
     return Column(
       children: [
@@ -248,7 +282,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  // Function to build the user's recipes list
+  // user's recipes list
   Widget _buildUserRecipes() {
     return FutureBuilder(
       future: _firestore.collection('recipes').where('userId', isEqualTo: widget.userId).get(),
@@ -277,10 +311,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  // Function to build the liked recipes list
+  //  liked recipes list
   Widget _buildLikedRecipes() {
     return const Center(child: Text("Liked Recipes will be shown here."));
   }
+
 
   // Recipe Card UI
   Widget _buildRecipeCard(QueryDocumentSnapshot recipe) {
@@ -302,3 +337,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 }
+
+
+
+

@@ -1,58 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:knowtocook/pages/notification_page.dart';
+import 'package:knowtocook/pages/post_creation.dart';
+import 'package:knowtocook/pages/search_page.dart';
 import 'package:knowtocook/pages/user_profile.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key, required String userId});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  _HomePageState createState() => _HomePageState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  // Index to track selected item in BottomNavigationBar
+class _HomePageState extends State<HomePage> {
+
   int _selectedIndex = 0;
 
-  // List of screens to display based on BottomNavigationBar selection
-  final List<Widget> _screens = [
-    // Add other screens here
-    Center(child: Text("Home Screen")),
-    Center(child: Text("Search Screen")),
-    Center(child: Text("Post Screen")),
-    Center(child: Text("Notification Screen")),
-  ];
+  void _onIconClicked(int _selectedIndex) async {
+    User? currentUser = FirebaseAuth.instance.currentUser;
 
-  // Method to handle navigation when a BottomNavigationBar item is tapped
-  void _onItemTapped(int index) async {
-    if (index == 4) {
-      User? currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser != null) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => UserProfileScreen(userId: currentUser.uid),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("User not logged in!")),
-        );
-      }
+    if (_selectedIndex== 4 && currentUser != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => UserProfilePage(userId: currentUser.uid, currentUserId: currentUser.uid, targetUserId: currentUser.uid,)),
+      );
+    } else if (_selectedIndex == 2 && currentUser != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => RecipeCreationPage(userId: currentUser.uid)),
+      );
+    } else if (_selectedIndex == 3 && currentUser != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => NotificationsPage(userId: currentUser.uid, currentUserId: currentUser.uid, targetUserId: '',)),
+      );
+    } else if (_selectedIndex == 1 && currentUser != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => SearchPage(userId: currentUser.uid)),
+      );
     } else {
       setState(() {
-        _selectedIndex = index;
+        _selectedIndex = _selectedIndex;
       });
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Home"),
-        backgroundColor: Colors.white,
-        elevation: 0,
-      ),
+      appBar: AppBar(title: Text("Home"), backgroundColor: Colors.white, elevation: 0),
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Column(
@@ -69,41 +67,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CategoryButton(text: "All", isSelected: true),
-                CategoryButton(text: "Food", isSelected: false),
-                CategoryButton(text: "Drink", isSelected: false),
-              ],
-            ),
+
             SizedBox(height: 16),
             Expanded(
               child: StreamBuilder(
-                stream: FirebaseFirestore.instance.collection('foods').snapshots(),
+                stream: FirebaseFirestore.instance.collection('recipes').orderBy('timestamp', descending: true).snapshots(),
                 builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator());
                   }
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return Center(child: Text("No data available"));
+                    return Center(child: Text("No recipes available"));
                   }
-                  return GridView.builder(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 0.8,
-                    ),
+                  return ListView.builder(
                     itemCount: snapshot.data!.docs.length,
                     itemBuilder: (context, index) {
-                      var foodData = snapshot.data!.docs[index];
-                      return FoodCard(
-                        name: foodData['name'],
-                        category: foodData['category'],
-                        imageUrl: foodData['imageUrl'],
-                      );
+                      var recipe = snapshot.data!.docs[index];
+                      return RecipeCard(recipe: recipe);
                     },
                   );
                 },
@@ -120,101 +100,83 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.notifications), label: "Notification"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
+        onTap: _onIconClicked,
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.green,
         unselectedItemColor: Colors.grey,
-        onTap: _onItemTapped,
-      ),
-    );
-  }
-}
-// Helper method to get the current user's data from Firestore
-Future<Map<String, String>> getUserData() async {
-  User? currentUser = FirebaseAuth.instance.currentUser;
 
-  if (currentUser != null) {
-    // Fetch the user data from Firestore
-    DocumentSnapshot userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(currentUser.uid)
-        .get();
-
-    // Ensure that the document exists and return user data
-    if (userDoc.exists) {
-      String username = userDoc['username'] ?? 'No username'; // Default if not set
-      String profileImageUrl = userDoc['profileImageUrl'] ?? ''; // Default empty string if not set
-      return {'username': username, 'profileImageUrl': profileImageUrl};
-    }
-  }
-
-  // Return empty data if user not found
-  return {'username': '', 'profileImageUrl': ''};
-}
-
-// CategoryButton Widget for the category selection
-class CategoryButton extends StatelessWidget {
-  final String text;
-  final bool isSelected;
-
-  CategoryButton({required this.text, required this.isSelected});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: ElevatedButton(
-        onPressed: () {},
-        style: ElevatedButton.styleFrom(
-          shape: StadiumBorder(), backgroundColor: isSelected ? Colors.green : Colors.grey[300],
-        ),
-        child: Text(
-          text,
-          style: TextStyle(color: isSelected ? Colors.white : Colors.black),
-        ),
       ),
     );
   }
 }
 
-// FoodCard Widget to display food items
-class FoodCard extends StatelessWidget {
-  final String name;
-  final String category;
-  final String imageUrl;
+class RecipeCard extends StatefulWidget {
+  final QueryDocumentSnapshot recipe;
 
-  FoodCard({required this.name, required this.category, required this.imageUrl});
+  RecipeCard({required this.recipe});
+
+  @override
+  _RecipeCardState createState() => _RecipeCardState();
+}
+
+class _RecipeCardState extends State<RecipeCard> {
+  bool _isExpanded = false;
 
   @override
   Widget build(BuildContext context) {
+    var data = widget.recipe.data() as Map<String, dynamic>;
+
     return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                image: DecorationImage(
-                  image: NetworkImage(imageUrl),
-                  fit: BoxFit.cover,
-                ),
+          ClipRRect(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+            child: Image.network(
+              data['imageUrl'] ?? '',
+              width: double.infinity,
+              height: 200,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                height: 200,
+                color: Colors.grey[300],
+                child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: TextStyle(fontWeight: FontWeight.bold)),
-                Text("$category • >60 mins", style: TextStyle(color: Colors.grey)),
+                Text(data['foodName'] ?? 'Unknown', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                SizedBox(height: 8),
+                Text(data['description'] ?? '', maxLines: _isExpanded ? null : 2, overflow: TextOverflow.ellipsis),
+                SizedBox(height: 8),
+                Text("⏳ ${data['cookingDuration']} | 🍽 Ingredients: ${data['ingredients'].length}"),
+                if (_isExpanded) ...[
+                  SizedBox(height: 8),
+                  Text("Ingredients: ${data['ingredients'].join(', ')}"),
+                  SizedBox(height: 8),
+                  Text("Steps:\n${data['steps'].join('\n')}"),
+                ],
+                SizedBox(height: 8),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _isExpanded = !_isExpanded;
+                    });
+                  },
+                  child: Text(_isExpanded ? "View Less" : "View More"),
+                ),
               ],
             ),
           ),
         ],
       ),
     );
+
   }
 }

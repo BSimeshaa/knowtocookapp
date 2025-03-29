@@ -36,13 +36,13 @@ class _LoginPageState extends State<LoginPage> {
       String email = emailController.text.trim();
       String password = passwordController.text.trim();
 
-      String? result = await AuthService().signUp(email, password);
+      String? result = await Auth().signUp(email, password);
 
       setState(() => isLoading = false);
 
       if (result == "success") {
         Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (context) => AccountCreationScreen()));
+            context, MaterialPageRoute(builder: (context) => AccountCreationPage()));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result ?? "Sign-Up Failed"), backgroundColor: Colors.red),

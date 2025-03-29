@@ -23,12 +23,12 @@ class _WelcomeBackPageState extends State<WelcomeBackPage> {
       String email = emailController.text.trim();
       String password = passwordController.text.trim();
 
-      String? result = await AuthService().signIn(email, password);
+      String? result = await Auth().signIn(email, password);
       setState(() => isLoading = false);
 
       if (result == "success") {
         Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (context) => HomeScreen()));
+            context, MaterialPageRoute(builder: (context) => HomePage(userId: '',)));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result ?? "Login Failed"), backgroundColor: Colors.red),
@@ -38,10 +38,10 @@ class _WelcomeBackPageState extends State<WelcomeBackPage> {
   }
 
   void _signInWithGoogle() async {
-    String? result = await AuthService().signInWithGoogle();
+    String? result = await Auth().signInWithGoogle();
     if (result == "success") {
       Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (context) => HomeScreen()));
+          context, MaterialPageRoute(builder: (context) => HomePage(userId: '',)));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result ?? "Google Sign-In Failed"), backgroundColor: Colors.red),

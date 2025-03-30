@@ -7,71 +7,65 @@ import 'package:knowtocook/pages/search_page.dart';
 import 'package:knowtocook/pages/user_profile.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key, required String userId});
+  final String userId;
+
+  const HomePage({super.key, required this.userId});
 
   @override
   _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-
   int _selectedIndex = 0;
 
-  void _onIconClicked(int _selectedIndex) async {
-    User? currentUser = FirebaseAuth.instance.currentUser;
-
-    if (_selectedIndex== 4 && currentUser != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => UserProfilePage(userId: currentUser.uid, currentUserId: currentUser.uid, targetUserId: currentUser.uid,)),
-      );
-    } else if (_selectedIndex == 2 && currentUser != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => RecipeCreationPage(userId: currentUser.uid)),
-      );
-    } else if (_selectedIndex == 3 && currentUser != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => NotificationsPage(userId: currentUser.uid, currentUserId: currentUser.uid, targetUserId: '',)),
-      );
-    } else if (_selectedIndex == 1 && currentUser != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => SearchPage(userId: currentUser.uid)),
-      );
-    } else {
-      setState(() {
-        _selectedIndex = _selectedIndex;
-      });
-    }
-  }
+  // List of pages to navigate to
+  final List<Widget> _pages = [];
 
   @override
-  Widget build(BuildContext context) {
+  void initState() {
+    super.initState();
+    // Initialize the pages list with the corresponding pages
+    _pages.addAll([
+      _buildHomePage(),
+      SearchPage(), // Search page
+      RecipeCreationPage(userId: widget.userId), // Post page
+      NotificationsPage(
+        userId: widget.userId,
+        targetUserId: widget.userId,
+        currentUserID: widget.userId,
+      ), // Notifications page
+      UserProfilePage(
+        userId: widget.userId,
+        currentUserId: widget.userId,
+        targetUserId: widget.userId,
+      ), // Profile page
+    ]);
+  }
+
+  Widget _buildHomePage() {
     return Scaffold(
-      appBar: AppBar(title: Text("Home"), backgroundColor: Colors.white, elevation: 0),
+      appBar: AppBar(
+        automaticallyImplyLeading: false, // Remove back arrow
+        title: Row(
+          children: [
+            Text("KnowToCook 🧑‍🍳",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(
-              decoration: InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: "Search",
-                filled: true,
-                fillColor: Colors.grey[200],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-
             SizedBox(height: 16),
             Expanded(
               child: StreamBuilder(
-                stream: FirebaseFirestore.instance.collection('recipes').orderBy('timestamp', descending: true).snapshots(),
+                stream: FirebaseFirestore.instance
+                    .collection('recipes') // Fetch posts collection
+                    .orderBy('timestamp', descending: true)
+                    .snapshots(),
                 builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator());
@@ -92,19 +86,33 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
-          BottomNavigationBarItem(icon: Icon(Icons.add_circle, size: 40), label: "Post"),
-          BottomNavigationBarItem(icon: Icon(Icons.notifications), label: "Notification"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
-        onTap: _onIconClicked,
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
+    );
+  }
 
+  // Update selected index when an icon is clicked
+  void _onIconClicked(int index) {
+    setState(() {
+      _selectedIndex = index; // Update the selected index
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _pages[_selectedIndex],  // Display the selected page based on _selectedIndex
+      bottomNavigationBar: BottomNavigationBar(
+        selectedItemColor: Colors.green,  // Color for selected item
+        unselectedItemColor: Colors.grey,  // Color for unselected items
+        currentIndex: _selectedIndex,  // Track the current selected index
+        onTap: _onIconClicked,  // Handle icon tap to update index
+        type: BottomNavigationBarType.fixed,  // Ensure all items are displayed
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),  // Home tab
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),  // Search tab
+          BottomNavigationBarItem(icon: Icon(Icons.add), label: "Post"),  // Post tab
+          BottomNavigationBarItem(icon: Icon(Icons.notifications), label: "Notification"),  // Notification tab
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),  // Profile tab
+        ],
       ),
     );
   }
@@ -113,7 +121,7 @@ class _HomePageState extends State<HomePage> {
 class RecipeCard extends StatefulWidget {
   final QueryDocumentSnapshot recipe;
 
-  RecipeCard({required this.recipe});
+  const RecipeCard({required this.recipe});
 
   @override
   _RecipeCardState createState() => _RecipeCardState();
@@ -121,6 +129,41 @@ class RecipeCard extends StatefulWidget {
 
 class _RecipeCardState extends State<RecipeCard> {
   bool _isExpanded = false;
+  bool _isLiked = false;
+  late int _likesCount;
+
+  @override
+  void initState() {
+    super.initState();
+    var data = widget.recipe.data() as Map<String, dynamic>;
+    _likesCount = data['likes'].length; // Set initial like count
+    _isLiked = data['likes'].contains(FirebaseAuth.instance.currentUser!.uid); // Check if the current user has liked this post
+  }
+
+  Future<void> _toggleLike() async {
+    var data = widget.recipe.data() as Map<String, dynamic>;
+    String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+
+    if (_isLiked) {
+      // Un-like the post
+      await FirebaseFirestore.instance.collection('recipes').doc(widget.recipe.id).update({
+        'likes': FieldValue.arrayRemove([currentUserId]),
+      });
+      setState(() {
+        _likesCount--;
+        _isLiked = false;
+      });
+    } else {
+      // Like the post
+      await FirebaseFirestore.instance.collection('recipes').doc(widget.recipe.id).update({
+        'likes': FieldValue.arrayUnion([currentUserId]),
+      });
+      setState(() {
+        _likesCount++;
+        _isLiked = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -171,12 +214,21 @@ class _RecipeCardState extends State<RecipeCard> {
                   },
                   child: Text(_isExpanded ? "View Less" : "View More"),
                 ),
+                SizedBox(height: 12),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(_isLiked ? Icons.favorite : Icons.favorite_border, color: _isLiked ? Colors.red : null),
+                      onPressed: _toggleLike,
+                    ),
+                    Text("$_likesCount likes"),
+                  ],
+                ),
               ],
             ),
           ),
         ],
       ),
     );
-
   }
 }

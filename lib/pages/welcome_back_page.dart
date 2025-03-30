@@ -3,6 +3,7 @@ import 'package:knowtocook/pages/home_page.dart';
 import 'package:knowtocook/pages/login_page.dart';
 import 'package:knowtocook/auth.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class WelcomeBackPage extends StatefulWidget {
   const WelcomeBackPage({super.key});
@@ -17,6 +18,11 @@ class _WelcomeBackPageState extends State<WelcomeBackPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+  }
+
   void _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() => isLoading = true);
@@ -27,8 +33,17 @@ class _WelcomeBackPageState extends State<WelcomeBackPage> {
       setState(() => isLoading = false);
 
       if (result == "success") {
-        Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (context) => HomePage(userId: '',)));
+        User? user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => HomePage(userId: user.uid)),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("User not found"), backgroundColor: Colors.red),
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result ?? "Login Failed"), backgroundColor: Colors.red),
@@ -83,19 +98,20 @@ class _WelcomeBackPageState extends State<WelcomeBackPage> {
               Text("Please enter your details here", style: TextStyle(color: Colors.grey)),
 
               SizedBox(height: 30),
+              // Email input
               TextFormField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   prefixIcon: Icon(Icons.email),
-                  hintText: "Email or phone number",
+                  hintText: "Email Address",
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
                 ),
-                validator: (value) => value!.isEmpty || !value.contains('@')
-                    ? "Enter a valid email" : null,
+                validator: (value) => value!.isEmpty || !value.contains('@') ? "Enter a valid email" : null,
               ),
 
               SizedBox(height: 20),
+              // Password input
               TextFormField(
                 controller: passwordController,
                 obscureText: true,
@@ -108,6 +124,7 @@ class _WelcomeBackPageState extends State<WelcomeBackPage> {
               ),
 
               SizedBox(height: 10),
+              // Forgot password link
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -116,6 +133,7 @@ class _WelcomeBackPageState extends State<WelcomeBackPage> {
                 ),
               ),
 
+              // Login button
               SizedBox(height: 20),
               ElevatedButton(
                 onPressed: isLoading ? null : _login,
@@ -130,8 +148,8 @@ class _WelcomeBackPageState extends State<WelcomeBackPage> {
               ),
 
               SizedBox(height: 20),
+              // Or continue with Google button
               Text("Or continue with", style: TextStyle(color: Colors.grey)),
-
               SizedBox(height: 10),
               ElevatedButton.icon(
                 onPressed: _signInWithGoogle,
@@ -145,13 +163,16 @@ class _WelcomeBackPageState extends State<WelcomeBackPage> {
               ),
 
               SizedBox(height: 20),
+              // Sign Up link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text("Don’t have an account? ", style: TextStyle(color: Colors.grey)),
                   GestureDetector(
                     onTap: () => Navigator.push(
-                        context, MaterialPageRoute(builder: (context) => LoginPage())),
+                      context,
+                      MaterialPageRoute(builder: (context) => LoginPage()), // Replace with your SignUpPage
+                    ),
                     child: Text(
                       "Sign Up",
                       style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),

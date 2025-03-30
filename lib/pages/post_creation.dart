@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:knowtocook/pages/home_page.dart';
 
 class RecipeCreationPage extends StatefulWidget {
   final String userId;
@@ -48,23 +49,35 @@ class _RecipeCreationPageState extends State<RecipeCreationPage> {
       List<String> ingredients = _ingredientControllers.map((c) => c.text).toList();
       List<String> steps = _stepControllers.map((c) => c.text).toList();
 
-      // Save recipe details to Firestore
-      await _firestore.collection('recipes').add({
-        'userId': userId,
-        'foodName': _foodNameController.text,
-        'description': _descriptionController.text,
-        'cookingDuration': _cookingDuration,
-        'ingredients': ingredients,
-        'steps': steps,
-        'imageUrl': imageUrl,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+      // Prepare the post structure
+      var postData = {
+        'userID': userId,                     // User who created the post
+        'foodName': _foodNameController.text,  // Recipe title
+        'description': _descriptionController.text,  // Description
+        'cookingDuration': _cookingDuration,   // Cooking duration
+        'ingredients': ingredients,           // Ingredients list
+        'steps': steps,                       // Steps list
+        'imageUrl': imageUrl,                 // Recipe image URL
+        'likes': [],                           // Empty list for likes
+        'comments': [],                        // Empty list for comments
+        'timestamp': FieldValue.serverTimestamp(),  // Timestamp when the post is created
+      };
+
+      // Save recipe details to Firestore under 'recipes' collection
+      await _firestore.collection('recipes').add(postData);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Recipe uploaded successfully!")),
       );
 
-      Navigator.pop(context);
+      // Navigate to the home page immediately
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomePage(userId: widget.userId),  // Navigate to the home page
+        ),
+      );
+
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to upload recipe: $e")),
@@ -91,7 +104,25 @@ class _RecipeCreationPageState extends State<RecipeCreationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Create Recipe")),
+      appBar: AppBar(
+        automaticallyImplyLeading: false, // Remove default back button
+        title: Row(
+          children: [
+            IconButton(
+              icon: Icon(Icons.arrow_back), // Custom back arrow
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => HomePage(userId: widget.userId)), // Navigate to HomePage
+                );
+              },
+            ),
+            Text("Create Recipe", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16.0),
         child: Column(
@@ -140,7 +171,6 @@ class _RecipeCreationPageState extends State<RecipeCreationPage> {
             )).toList(),
             ElevatedButton(onPressed: _addStep, child: Text("+ Add Step")),
             SizedBox(height: 20),
-
             TextField(
               controller: _imageUrlController,
               decoration: InputDecoration(labelText: "Image URL"),

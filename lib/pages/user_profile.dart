@@ -1,21 +1,27 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:knowtocook/pages/login_page.dart';
+import 'package:knowtocook/pages/home_page.dart';
+import 'package:knowtocook/pages/recipe_details_page.dart'; // Import the HomePage
 
 class UserProfilePage extends StatefulWidget {
   final String userId;
   final String currentUserId;
   final String targetUserId;
 
-  const UserProfilePage({super.key, required this.userId, required this.currentUserId, required this.targetUserId});
+  const UserProfilePage({
+    super.key,
+    required this.userId,
+    required this.currentUserId,
+    required this.targetUserId,
+  });
 
   @override
   _UserProfilePageState createState() => _UserProfilePageState();
 }
 
 class _UserProfilePageState extends State<UserProfilePage> {
-
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -35,7 +41,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   Future<void> _loadUserProfile() async {
     try {
-      DocumentSnapshot userDoc = await _firestore.collection('users').doc(widget.userId).get();
+      DocumentSnapshot userDoc = await _firestore.collection('users').doc(
+          widget.userId).get();
 
       if (userDoc.exists) {
         setState(() {
@@ -61,10 +68,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
     await _auth.signOut();
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => LoginPage()), // Make sure LoginPage is properly defined
+      MaterialPageRoute(builder: (context) =>
+          LoginPage()), // Make sure LoginPage is properly defined
     );
   }
-
 
   Future<void> _updateProfilePicture(String imageUrl) async {
     try {
@@ -89,7 +96,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
           title: Text("Enter Image URL"),
           content: TextField(
             controller: controller,
-            decoration: InputDecoration(hintText: "https://example.com/image.jpg"),
+            decoration: InputDecoration(
+                hintText: "https://example.com/image.jpg"),
           ),
           actions: [
             TextButton(
@@ -105,15 +113,38 @@ class _UserProfilePageState extends State<UserProfilePage> {
       },
     );
   }
+
+  // Navigate to home page when back button is clicked
+  void _navigateToHomePage() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) =>
+          HomePage(userId: widget.userId)), // Pass userId if needed
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Profile"),
+        automaticallyImplyLeading: false,
+        // Remove the default back button
+        title: Row(
+          children: [
+            IconButton(
+              icon: Icon(Icons.arrow_back), // Custom back arrow
+              onPressed: _navigateToHomePage, // Navigate to HomePage
+            ),
+            Text("Profile",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.red),
-            onPressed: _signOut, // Sign Out Function
+            icon: Icon(Icons.logout, color: Colors.red), // Sign-out icon
+            onPressed: _signOut, // Call your sign-out method
           ),
         ],
       ),
@@ -133,8 +164,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     spreadRadius: 3,
                   ),
                 ],
-                borderRadius:
-                const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+                borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30)),
               ),
               child: Column(
                 children: [
@@ -148,20 +180,20 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     child: CircleAvatar(
                       backgroundImage: profileImageUrl.isNotEmpty
                           ? NetworkImage(profileImageUrl)
-                          : AssetImage('assets/default_avatar.png') as ImageProvider,
+                          : AssetImage(
+                          'assets/default_avatar.png') as ImageProvider,
                       radius: 50,
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Text(username, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text(username, style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 5),
                   Text(bio, style: TextStyle(color: Colors.grey[600])),
                   const SizedBox(height: 15),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-
-                    ],
+                    children: [],
                   ),
                 ],
               ),
@@ -180,7 +212,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     ],
                   ),
                   SizedBox(
-                    height: 300,
+                    height: 500,
                     child: TabBarView(
                       children: [
                         _buildUserRecipes(),
@@ -196,16 +228,20 @@ class _UserProfilePageState extends State<UserProfilePage> {
       ),
     );
   }
-
-
-  // user's recipes list
   Widget _buildUserRecipes() {
-    return FutureBuilder(
-      future: _firestore.collection('recipes').where('userId', isEqualTo: widget.userId).get(),
-      builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+    return FutureBuilder<QuerySnapshot>(
+      future: _firestore.collection('recipes')
+          .where('userId', isEqualTo: widget.userId)  // Query by userId field
+          .get(),  // Retrieve data
+      builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const Center(child: Text("No recipes found."));
         }
@@ -220,34 +256,220 @@ class _UserProfilePageState extends State<UserProfilePage> {
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
             var recipe = snapshot.data!.docs[index];
-            return _buildRecipeCard(recipe);
+            return _buildRecipeCard(recipe, index);  // Display each recipe with delete option
           },
         );
       },
     );
   }
 
-  //  liked recipes list
-  Widget _buildLikedRecipes() {
-    return const Center(child: Text("Liked Recipes will be shown here."));
-  }
+  Widget _buildRecipeCard(QueryDocumentSnapshot recipe, int index) {
+    var data = recipe.data() as Map<String, dynamic>;
 
+    // Safely access the fields from Firestore data
+    String title = data['foodName'] ?? 'No Title';  // Provide a default value if 'foodName' is missing
+    String imageUrl = data['imageUrl'] ?? '';  // Default to empty string if no imageUrl
+    String description = data['description'] ?? 'No Description'; // Default to 'No Description'
+    String recipeId = recipe.id; // Get the recipe ID
 
-  //recipe card
-  Widget _buildRecipeCard(QueryDocumentSnapshot recipe) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Image Section
           Expanded(
-            child: Image.network(recipe['imageUrl'], width: double.infinity, fit: BoxFit.cover),
+            child: imageUrl.isNotEmpty
+                ? Image.network(
+              imageUrl,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return const Center(child: Icon(Icons.error)); // In case the image is broken
+              },
+            )
+                : const Center(child: Icon(Icons.image_not_supported)), // Display when no image URL is provided
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Text(recipe['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(
+              title, // Display the recipe title
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              description, // Display description, or show a default text
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ),
+          // "Delete" Button Section
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ElevatedButton(
+              onPressed: () async {
+                // Confirm before deleting
+                bool confirmDelete = await showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: Text("Delete Recipe"),
+                      content: Text("Are you sure you want to delete this recipe?"),
+                      actions: <Widget>[
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: Text("Cancel"),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          child: Text("Delete"),
+                        ),
+                      ],
+                    );
+                  },
+                ) ?? false;
+
+                if (confirmDelete) {
+                  try {
+                    // Delete the recipe document from Firestore
+                    await _firestore.collection('recipes').doc(recipeId).delete();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Recipe deleted successfully")),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Failed to delete recipe: $e")),
+                    );
+                  }
+                }
+              },
+              child: Text("Delete"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, // Set button color to red
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildLikedRecipes() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('recipes') // Fetch recipes collection
+          .where('likes', arrayContains: widget
+          .userId) // Check if the userId is in the 'likes' array
+          .orderBy('timestamp',
+          descending: true) // Ensure recipes are sorted by timestamp
+          .snapshots(),
+      builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text("No liked recipes found."));
+        }
+
+        return GridView.builder(
+          padding: const EdgeInsets.all(10),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+          ),
+          itemCount: snapshot.data!.docs.length,
+          itemBuilder: (context, index) {
+            var recipe = snapshot.data!.docs[index];
+            return _buildRecipeCard01(
+                recipe); // Display each liked recipe in a card
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildRecipeCard01(QueryDocumentSnapshot recipe) {
+    var data = recipe.data() as Map<String, dynamic>;
+
+    // Safely access the fields from Firestore data
+    String title = data['foodName'] ??
+        'No Title'; // Provide a default value if 'foodName' is missing
+    String imageUrl = data['imageUrl'] ??
+        ''; // Default to empty string if no imageUrl
+    String description = data['description'] ??
+        'No Description'; // Default to 'No Description'
+    String recipeId = recipe.id; // Get the recipe ID
+
+    // Check if the current user has liked the recipe
+    bool isLiked = data['likes'].contains(
+        FirebaseAuth.instance.currentUser!.uid);
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Image Section
+          Expanded(
+            child: imageUrl.isNotEmpty
+                ? Image.network(
+              imageUrl,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return const Center(
+                    child: Icon(Icons.error)); // In case the image is broken
+              },
+            )
+                : const Center(child: Icon(Icons
+                .image_not_supported)), // Display when no image URL is provided
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              title, // Display the recipe title
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              description, // Display description, or show a default text
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ),
+          // "Cook" Button Section - Show only for liked recipes
+          if (isLiked) ...[
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ElevatedButton(
+                onPressed: () {
+                  // Navigate to RecipeDetailsPage, passing the recipeId
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          RecipeDetailsPage(recipeId: recipeId),
+                    ),
+                  );
+                },
+                child: Text("Cook"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green, // Set button color
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

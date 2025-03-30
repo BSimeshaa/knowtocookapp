@@ -78,7 +78,7 @@ class _LoginPageState extends State<LoginPage> {
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   prefixIcon: Icon(Icons.email),
-                  hintText: "Email or phone number",
+                  hintText: "Email Address",
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
                 ),
                 validator: (value) => value!.isEmpty || !value.contains('@')

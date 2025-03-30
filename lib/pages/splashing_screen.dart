@@ -19,11 +19,11 @@ class SplashScreen extends StatelessWidget {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                _buildImage("https://wallpapers.com/images/hd/aesthetic-food-pictures-2000-x-2667-5tup8wdyceiymfuo.jpg/?food,1", 130),
-                Positioned(top: 50, left: 50, child: _buildImage("https://wallpapers.com/images/hd/aesthetic-food-pictures-2000-x-2667-5tup8wdyceiymfuo.jpg?food,2", 80)),
-                Positioned(top: 100, right: 30, child: _buildImage("https://wallpapers.com/images/hd/aesthetic-food-pictures-2000-x-2667-5tup8wdyceiymfuo.jpg/?food,3", 90)),
-                Positioned(bottom: 80, left: 20, child: _buildImage("https://wallpapers.com/images/hd/aesthetic-food-pictures-2000-x-2667-5tup8wdyceiymfuo.jpg?food,4", 70)),
-                Positioned(bottom: 100, right: 50, child: _buildImage("https://wallpapers.com/images/hd/aesthetic-food-pictures-2000-x-2667-5tup8wdyceiymfuo.jpg?food,5", 85)),
+                _buildImage("https://wallpapers.com/images/hd/aesthetic-food-pictures-2000-x-2667-5tup8wdyceiymfuo.jpg/?food,1", 140),
+                Positioned(top: 50, left: 50, child: _buildImage("https://i.pinimg.com/736x/e8/b0/c6/e8b0c6e0a71eb778c43c107b53eb82ca.jpg?food,2", 70)),
+                Positioned(top: 150, right: 50, child: _buildImage("https://i.pinimg.com/736x/28/d6/4c/28d64c914cc605e6673e1a091a70befb.jpg?food,3", 100)),
+                Positioned(bottom: 140, left: 50, child: _buildImage("https://i.pinimg.com/736x/0f/0b/aa/0f0baaa4146c215f481057daaef77687.jpg?food,4", 90)),
+                Positioned(bottom: 40, right: 50, child: _buildImage("https://i.pinimg.com/736x/09/3b/68/093b68de8bf36cac4d681601409d6789.jpg?food,5", 60)),
               ],
             ),
           ),

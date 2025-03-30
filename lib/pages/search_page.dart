@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:knowtocook/pages/home_page.dart'; // Import HomePage
 import 'package:knowtocook/pages/recipe_details_page.dart'; // Import the Recipe Details Page
 
 class SearchPage extends StatefulWidget {
@@ -45,7 +46,10 @@ class _SearchPageState extends State<SearchPage> {
             IconButton(
               icon: Icon(Icons.arrow_back),
               onPressed: () {
-                Navigator.pop(context); // Go back to the previous screen
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => HomePage(userId: 'user123')), // Navigate to HomePage
+                );
               },
             ),
             Text("Search",

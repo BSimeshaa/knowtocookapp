@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:knowtocook/pages/login_page.dart';
 import 'package:knowtocook/pages/home_page.dart';
-import 'package:knowtocook/pages/recipe_details_page.dart'; // Import the HomePage
+import 'package:knowtocook/pages/recipe_details_page.dart'; // Import the RecipeDetailsPage
 
 class UserProfilePage extends StatefulWidget {
   final String userId;
@@ -123,117 +123,83 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        // Remove the default back button
-        title: Row(
-          children: [
-            IconButton(
-              icon: Icon(Icons.arrow_back), // Custom back arrow
-              onPressed: _navigateToHomePage, // Navigate to HomePage
+  // Method to delete a recipe from Firestore
+  Future<void> _deleteRecipe(String recipeId) async {
+    try {
+      await _firestore.collection('recipes').doc(recipeId).delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Recipe deleted')));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  // Method to build the recipe card
+  Widget _buildRecipeCard(DocumentSnapshot recipe, String recipeId) {
+    String title = recipe['foodName'] ?? 'No Title';
+    String description = recipe['description'] ?? 'No Description';
+    String imageUrl = recipe['imageUrl'] ?? '';
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Image Section
+          imageUrl.isNotEmpty
+              ? Image.network(
+            imageUrl,
+            width: double.infinity,
+            height: 60,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return const Center(
+                  child: Icon(Icons.error)); // In case of image error
+            },
+          )
+              : const Center(child: Icon(Icons.image_not_supported)),
+
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              title, // Display the recipe title
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            Text("Profile",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.logout, color: Colors.red), // Sign-out icon
-            onPressed: _signOut, // Call your sign-out method
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              description, // Display the recipe description
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ),
+
+          // "Delete" Button Section
+          Padding(
+            padding: const EdgeInsets.only(
+                left: 8.0, right: 8.0, top: 0.5, bottom: 0.5),
+            child: ElevatedButton(
+              onPressed: () => _deleteRecipe(recipeId),
+              // Delete recipe on button click
+              child: const Text("Delete Recipe"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, // Set button color to red
+              ),
+            ),
           ),
         ],
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
-                    blurRadius: 10,
-                    spreadRadius: 3,
-                  ),
-                ],
-                borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(30),
-                    bottomRight: Radius.circular(30)),
-              ),
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: () async {
-                      String? imageUrl = await _showImageUrlDialog(context);
-                      if (imageUrl != null && imageUrl.isNotEmpty) {
-                        _updateProfilePicture(imageUrl);
-                      }
-                    },
-                    child: CircleAvatar(
-                      backgroundImage: profileImageUrl.isNotEmpty
-                          ? NetworkImage(profileImageUrl)
-                          : AssetImage(
-                          'assets/default_avatar.png') as ImageProvider,
-                      radius: 50,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(username, style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 5),
-                  Text(bio, style: TextStyle(color: Colors.grey[600])),
-                  const SizedBox(height: 15),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [],
-                  ),
-                ],
-              ),
-            ),
-            DefaultTabController(
-              length: 2,
-              child: Column(
-                children: [
-                  const TabBar(
-                    labelColor: Colors.black,
-                    unselectedLabelColor: Colors.grey,
-                    indicatorColor: Colors.green,
-                    tabs: [
-                      Tab(text: "Recipes"),
-                      Tab(text: "Liked"),
-                    ],
-                  ),
-                  SizedBox(
-                    height: 500,
-                    child: TabBarView(
-                      children: [
-                        _buildUserRecipes(),
-                        _buildLikedRecipes(),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
 
-  Widget _buildUserRecipes() {
+  Widget buildUserRecipesList(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore.collection('recipes')
-          .where('userId', isEqualTo: widget.userId) // Query by userId field
-          .snapshots(), // Use snapshots() to listen to real-time updates
+          .where('userID', isEqualTo: widget.userId)
+          .orderBy('timestamp', descending: true) // Make sure timestamp exists
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -247,24 +213,19 @@ class _UserProfilePageState extends State<UserProfilePage> {
           return const Center(child: Text("No recipes found."));
         }
 
-        // Debugging: Log the length of documents fetched
-        print("Number of recipes fetched: ${snapshot.data!.docs.length}");
-
         return GridView.builder(
           padding: const EdgeInsets.all(10),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
+            crossAxisCount: 2, // Two columns
+            crossAxisSpacing: 10, // Spacing between columns
+            mainAxisSpacing: 10, // Spacing between rows
           ),
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
             var recipe = snapshot.data!.docs[index];
+            String recipeId = recipe.id;
 
-            // Debugging: Log the content of the recipe document
-            print("Recipe at index $index: ${recipe.data()}");
-
-            return _buildRecipeCard(recipe, index); // Display each recipe with delete option
+            return _buildRecipeCard(recipe, recipeId); // Display each recipe with delete option
           },
         );
       },
@@ -272,106 +233,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }
 
 
-  Widget _buildRecipeCard(QueryDocumentSnapshot recipe, int index) {
-    var data = recipe.data() as Map<String, dynamic>;
-
-    // Safely access the fields from Firestore data
-    String title = data['foodName'] ??
-        'No Title'; // Provide a default value if 'foodName' is missing
-    String imageUrl = data['imageUrl'] ??
-        ''; // Default to empty string if no imageUrl
-    String description = data['description'] ??
-        'No Description'; // Default to 'No Description'
-    String recipeId = recipe.id; // Get the recipe ID
-
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image Section
-          Expanded(
-            child: imageUrl.isNotEmpty
-                ? Image.network(
-              imageUrl,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return const Center(
-                    child: Icon(Icons.error)); // In case the image is broken
-              },
-            )
-                : const Center(child: Icon(Icons
-                .image_not_supported)), // Display when no image URL is provided
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              title, // Display the recipe title
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              description, // Display description, or show a default text
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-          ),
-          // "Delete" Button Section
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton(
-              onPressed: () async {
-                // Confirm before deleting
-                bool confirmDelete = await showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: Text("Delete Recipe"),
-                      content: Text(
-                          "Are you sure you want to delete this recipe?"),
-                      actions: <Widget>[
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(false),
-                          child: Text("Cancel"),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(true),
-                          child: Text("Delete"),
-                        ),
-                      ],
-                    );
-                  },
-                ) ?? false;
-
-                if (confirmDelete) {
-                  try {
-                    // Delete the recipe document from Firestore
-                    await _firestore.collection('recipes')
-                        .doc(recipeId)
-                        .delete();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Recipe deleted successfully")),
-                    );
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Failed to delete recipe: $e")),
-                    );
-                  }
-                }
-              },
-              child: Text("Delete"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red, // Set button color to red
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
 
   Widget _buildLikedRecipes() {
@@ -494,6 +355,109 @@ class _UserProfilePageState extends State<UserProfilePage> {
           ],
 
         ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: Row(
+          children: [
+            IconButton(
+              icon: Icon(Icons.arrow_back),
+              onPressed: _navigateToHomePage,
+            ),
+            Text("Profile", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout, color: Colors.red),
+            onPressed: _signOut,
+          ),
+        ],
+      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    blurRadius: 10,
+                    spreadRadius: 3,
+                  ),
+                ],
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
+              ),
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: () async {
+                      String? imageUrl = await _showImageUrlDialog(context);
+                      if (imageUrl != null && imageUrl.isNotEmpty) {
+                        _updateProfilePicture(imageUrl);
+                      }
+                    },
+                    child: CircleAvatar(
+                      backgroundImage: profileImageUrl.isNotEmpty
+                          ? NetworkImage(profileImageUrl)
+                          : AssetImage('assets/default_avatar.png') as ImageProvider,
+                      radius: 50,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(username, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 5),
+                  Text(bio, style: TextStyle(color: Colors.grey[600])),
+                  SizedBox(height: 15),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [],
+                  ),
+                ],
+              ),
+            ),
+            DefaultTabController(
+              length: 2,
+              child: Column(
+                children: [
+                  const TabBar(
+                    labelColor: Colors.black,
+                    unselectedLabelColor: Colors.grey,
+                    indicatorColor: Colors.green,
+                    tabs: [
+                      Tab(text: "Recipes"),
+                      Tab(text: "Liked"),
+                    ],
+                  ),
+                  SizedBox(
+                    height: 500,
+                    child: TabBarView(
+                      children: [
+                        buildUserRecipesList(context),
+                         _buildLikedRecipes()
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

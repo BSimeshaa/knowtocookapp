@@ -30,8 +30,6 @@ class _HomePageState extends State<HomePage> {
       SearchPage(), // Search page
       RecipeCreationPage(userId: widget.userId), // Post page
       NotificationsPage(
-        userId: widget.userId,
-        targetUserId: widget.userId,
         currentUserID: widget.userId,
       ), // Notifications page
       UserProfilePage(
@@ -131,6 +129,7 @@ class _RecipeCardState extends State<RecipeCard> {
   bool _isExpanded = false;
   bool _isLiked = false;
   late int _likesCount;
+  final TextEditingController _commentController = TextEditingController();
 
   @override
   void initState() {
@@ -162,6 +161,32 @@ class _RecipeCardState extends State<RecipeCard> {
         _likesCount++;
         _isLiked = true;
       });
+    }
+  }
+
+  Future<void> _addComment() async {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+    String commentText = _commentController.text.trim();
+
+    if (commentText.isEmpty) {
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance.collection('recipes')
+          .doc(widget.recipe.id)
+          .collection('comments')
+          .add({
+        'userId': userId,
+        'commentText': commentText,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      _commentController.clear(); // Clear the input after posting
+
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Comment added")));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to add comment: $e")));
     }
   }
 
@@ -222,7 +247,101 @@ class _RecipeCardState extends State<RecipeCard> {
                       onPressed: _toggleLike,
                     ),
                     Text("$_likesCount likes"),
+                    Spacer(),
+                    IconButton(
+                      icon: Icon(Icons.comment),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            return AlertDialog(
+                              title: Text("Add a Comment"),
+                              content: TextField(
+                                controller: _commentController,
+                                decoration: InputDecoration(
+                                  hintText: "Write your comment...",
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Text("Cancel"),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    _addComment();
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Text("Post"),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                    ),
                   ],
+                ),
+                // Displaying the comments section for this recipe
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance.collection('recipes')
+                      .doc(widget.recipe.id)
+                      .collection('comments')
+                      .orderBy('timestamp', descending: true)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    }
+
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return Center(child: Text("No comments yet"));
+                    }
+
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
+                      itemCount: snapshot.data!.docs.length,
+                      itemBuilder: (context, index) {
+                        var comment = snapshot.data!.docs[index];
+                        String userId = comment['userId'];
+                        String commentText = comment['commentText'];
+                        Timestamp timestamp = comment['timestamp'];
+                        DateTime dateTime = timestamp.toDate();
+
+
+                        // Fetch the user's name based on the userId
+                        return FutureBuilder<DocumentSnapshot>(
+                        future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
+                        builder: (context, userSnapshot) {
+                        if (userSnapshot.connectionState == ConnectionState.waiting) {
+                        return Center(child: CircularProgressIndicator());
+                        }
+
+                        if (userSnapshot.hasError) {
+                          return Center(child: Text('Error fetching user data: ${userSnapshot.error}'));
+                        }
+
+                        String userName = userSnapshot.data?.get('name') ?? 'Unknown User';
+
+                        return ListTile(
+                            leading: Icon(Icons.account_circle), // Placeholder for user avatar
+                        title: Text(userName), // Display the user's name who commented
+                        subtitle: Text(commentText), // Display the comment text
+                        trailing: Text("${dateTime.hour}:${dateTime.minute}"), // Timestamp
+                        );
+                        },
+                        );
+                      },
+                    );
+                  },
                 ),
               ],
             ),

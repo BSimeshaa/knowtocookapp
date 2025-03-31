@@ -54,7 +54,7 @@ class _LoginPageState extends State<LoginPage> {
 
   void _navigateToLogin() {
     Navigator.push(
-        context, MaterialPageRoute(builder: (context) => WelcomeBackPage()));
+        context, MaterialPageRoute(builder: (context) => WelcomeBackPage(userId: '',)));
   }
 
 

@@ -6,7 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class WelcomeBackPage extends StatefulWidget {
-  const WelcomeBackPage({super.key});
+  const WelcomeBackPage({super.key, required String userId});
 
   @override
   _WelcomeBackPageState createState() => _WelcomeBackPageState();

@@ -230,10 +230,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }
 
   Widget _buildUserRecipes() {
-    return FutureBuilder<QuerySnapshot>(
-      future: _firestore.collection('recipes')
+    return StreamBuilder<QuerySnapshot>(
+      stream: _firestore.collection('recipes')
           .where('userId', isEqualTo: widget.userId) // Query by userId field
-          .get(), // Retrieve data
+          .snapshots(), // Use snapshots() to listen to real-time updates
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -247,6 +247,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
           return const Center(child: Text("No recipes found."));
         }
 
+        // Debugging: Log the length of documents fetched
+        print("Number of recipes fetched: ${snapshot.data!.docs.length}");
+
         return GridView.builder(
           padding: const EdgeInsets.all(10),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -257,13 +260,17 @@ class _UserProfilePageState extends State<UserProfilePage> {
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
             var recipe = snapshot.data!.docs[index];
-            return _buildRecipeCard(
-                recipe, index); // Display each recipe with delete option
+
+            // Debugging: Log the content of the recipe document
+            print("Recipe at index $index: ${recipe.data()}");
+
+            return _buildRecipeCard(recipe, index); // Display each recipe with delete option
           },
         );
       },
     );
   }
+
 
   Widget _buildRecipeCard(QueryDocumentSnapshot recipe, int index) {
     var data = recipe.data() as Map<String, dynamic>;

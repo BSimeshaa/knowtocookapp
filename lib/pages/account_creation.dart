@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:knowtocook/pages/home_page.dart';
 import 'dart:io';
 
+import 'package:knowtocook/pages/welcome_back_page.dart';
+
 class AccountCreationPage extends StatefulWidget {
   @override
   _AccountCreationPageState createState() => _AccountCreationPageState();
@@ -14,15 +16,67 @@ class AccountCreationPage extends StatefulWidget {
 class _AccountCreationPageState extends State<AccountCreationPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _bioController = TextEditingController();
-  File? _profileImage;
+
   bool _isLoading = false;
+  String _profileImageUrl = ''; // Store the image URL entered by the user
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+
+  // method to get an image URL from the user
+  Future<void> _pickImageUrl() async {
+    String? imageUrl = await _showImageUrlDialog(context); // Existing method to show a dialog to enter URL
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      setState(() {
+        _profileImageUrl = imageUrl; // Store the URL entered by the user
+      });
+    }
+  }
+
+  // method to store user details in the db
+  Future<void> _saveUserData() async {
+    if (_usernameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter a username.")));
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      String userId = _auth.currentUser!.uid;
+      // No need to upload image if the URL is provided
+      String profileImageUrl = _profileImageUrl.isNotEmpty ? _profileImageUrl : '';
+
+      await _firestore.collection('users').doc(userId).set({
+        'name': _usernameController.text.trim(),
+        'bio': _bioController.text.trim(),
+        'profileImage': profileImageUrl, // Save the online image URL or empty if not provided
+        'recipes': 0,
+        'following': 0,
+        'followers': 0,
+      });
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => WelcomeBackPage(userId: userId)),
+      );
+    } catch (e) {
+      print("Error saving user data: $e");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+
+//  final FirebaseStorage _storage = FirebaseStorage.instance; - needed when firebase access is granted
 
   // method to select an image from the gallery
-  Future<void> _pickImage() async {
+  /* Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
@@ -32,8 +86,8 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
     }
   }
 
-  // method to store the profile pic
-  Future<String?> _uploadProfileImage(String userId) async {
+  // method to store the profile pic - requires firebase storage access
+ Future<String?> _uploadProfileImage(String userId) async {
     if (_profileImage == null) return null;
 
     try {
@@ -47,48 +101,7 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
       return null;
     }
   }
-
-  // method to store user details in the db
-  Future<void> _saveUserData() async {
-    if (_usernameController.text.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Please enter a username.")));
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      String userId = _auth.currentUser!.uid;
-      String? profileImageUrl = await _uploadProfileImage(userId);
-
-      await _firestore.collection('users').doc(userId).set({
-        'name': _usernameController.text.trim(),
-        'bio': _bioController.text.trim(),
-        'profileImage': profileImageUrl ?? '',
-        'recipes': 0,
-        'following': 0,
-        'followers': 0,
-      });
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => HomePage(userId: '',),
-        ),
-      );
-    } catch (e) {
-      print("Error saving user data: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: ${e.toString()}")));
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
+*/
 
   @override
   Widget build(BuildContext context) {
@@ -99,11 +112,11 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
         child: Column(
           children: [
             GestureDetector(
-              onTap: _pickImage,
+              onTap: _pickImageUrl, // Tap to input an online image URL
               child: CircleAvatar(
                 radius: 50,
-                backgroundImage: _profileImage != null
-                    ? FileImage(_profileImage!)
+                backgroundImage: _profileImageUrl.isNotEmpty
+                    ? NetworkImage(_profileImageUrl) // Show online image URL
                     : const AssetImage("assets/default_avatar.png") as ImageProvider,
                 child: const Align(
                   alignment: Alignment.bottomRight,
@@ -131,20 +144,43 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String hint, IconData icon,
-      {bool obscureText = false, int maxLines = 1}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: TextField(
-        controller: controller,
-        obscureText: obscureText,
-        maxLines: maxLines,
-        decoration: InputDecoration(
-          prefixIcon: Icon(icon),
-          hintText: hint,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        ),
+  // Method to build text fields
+  Widget _buildTextField(TextEditingController controller, String label, IconData icon, {int? maxLines}) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon),
       ),
     );
   }
+
+  // Method to show a dialog for entering an image URL
+  Future<String?> _showImageUrlDialog(BuildContext context) async {
+    TextEditingController controller = TextEditingController();
+    return await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Enter Image URL"),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(hintText: "https://example.com/image.jpg"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, controller.text),
+              child: const Text("Update"),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
+

@@ -228,11 +228,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
       ),
     );
   }
+
   Widget _buildUserRecipes() {
     return FutureBuilder<QuerySnapshot>(
       future: _firestore.collection('recipes')
-          .where('userId', isEqualTo: widget.userId)  // Query by userId field
-          .get(),  // Retrieve data
+          .where('userId', isEqualTo: widget.userId) // Query by userId field
+          .get(), // Retrieve data
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -256,7 +257,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
             var recipe = snapshot.data!.docs[index];
-            return _buildRecipeCard(recipe, index);  // Display each recipe with delete option
+            return _buildRecipeCard(
+                recipe, index); // Display each recipe with delete option
           },
         );
       },
@@ -267,9 +269,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
     var data = recipe.data() as Map<String, dynamic>;
 
     // Safely access the fields from Firestore data
-    String title = data['foodName'] ?? 'No Title';  // Provide a default value if 'foodName' is missing
-    String imageUrl = data['imageUrl'] ?? '';  // Default to empty string if no imageUrl
-    String description = data['description'] ?? 'No Description'; // Default to 'No Description'
+    String title = data['foodName'] ??
+        'No Title'; // Provide a default value if 'foodName' is missing
+    String imageUrl = data['imageUrl'] ??
+        ''; // Default to empty string if no imageUrl
+    String description = data['description'] ??
+        'No Description'; // Default to 'No Description'
     String recipeId = recipe.id; // Get the recipe ID
 
     return Card(
@@ -286,10 +291,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
               width: double.infinity,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
-                return const Center(child: Icon(Icons.error)); // In case the image is broken
+                return const Center(
+                    child: Icon(Icons.error)); // In case the image is broken
               },
             )
-                : const Center(child: Icon(Icons.image_not_supported)), // Display when no image URL is provided
+                : const Center(child: Icon(Icons
+                .image_not_supported)), // Display when no image URL is provided
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
@@ -316,7 +323,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   builder: (BuildContext context) {
                     return AlertDialog(
                       title: Text("Delete Recipe"),
-                      content: Text("Are you sure you want to delete this recipe?"),
+                      content: Text(
+                          "Are you sure you want to delete this recipe?"),
                       actions: <Widget>[
                         TextButton(
                           onPressed: () => Navigator.of(context).pop(false),
@@ -334,7 +342,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 if (confirmDelete) {
                   try {
                     // Delete the recipe document from Firestore
-                    await _firestore.collection('recipes').doc(recipeId).delete();
+                    await _firestore.collection('recipes')
+                        .doc(recipeId)
+                        .delete();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text("Recipe deleted successfully")),
                     );
@@ -419,47 +429,52 @@ class _UserProfilePageState extends State<UserProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image Section
-          Expanded(
-            child: imageUrl.isNotEmpty
-                ? Image.network(
+          // Image Section with fixed height
+          imageUrl.isNotEmpty
+              ? Container(
+            height: 60, // Adjust height to fit the image better
+            width: double.infinity,
+            child: Image.network(
               imageUrl,
-              width: double.infinity,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return const Center(
                     child: Icon(Icons.error)); // In case the image is broken
               },
-            )
-                : const Center(child: Icon(Icons
-                .image_not_supported)), // Display when no image URL is provided
-          ),
+            ),
+          )
+              : const Center(child: Icon(Icons.image_not_supported)),
+          // Display when no image URL is provided
+
+          // Title Section
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
               title, // Display the recipe title
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
           ),
+
+          // Description Section
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(4.0),
             child: Text(
               description, // Display description, or show a default text
               style: TextStyle(color: Colors.grey[600]),
             ),
           ),
-          // "Cook" Button Section - Show only for liked recipes
+
+// "Cook" Button Section - Show only for liked recipes
           if (isLiked) ...[
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 1.0, bottom: 1.0), // Adjust padding to reduce space
               child: ElevatedButton(
                 onPressed: () {
                   // Navigate to RecipeDetailsPage, passing the recipeId
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          RecipeDetailsPage(recipeId: recipeId),
+                      builder: (context) => RecipeDetailsPage(recipeId: recipeId),
                     ),
                   );
                 },
@@ -470,6 +485,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
               ),
             ),
           ],
+
         ],
       ),
     );

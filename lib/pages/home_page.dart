@@ -18,32 +18,30 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  // List of pages to navigate to
+
   final List<Widget> _pages = [];
 
   @override
   void initState() {
     super.initState();
-    // Initialize the pages list with the corresponding pages
+
     _pages.addAll([
       _buildHomePage(),
-      SearchPage(), // Search page
-      RecipeCreationPage(userId: widget.userId), // Post page
-      NotificationsPage(
-        currentUserID: widget.userId,
-      ), // Notifications page
+      SearchPage(),
+      RecipeCreationPage(userId: widget.userId),
+
       UserProfilePage(
         userId: widget.userId,
         currentUserId: widget.userId,
         targetUserId: widget.userId,
-      ), // Profile page
+      ),
     ]);
   }
 
   Widget _buildHomePage() {
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false, // Remove back arrow
+        automaticallyImplyLeading: false,
         title: Row(
           children: [
             Text("KnowToCook 🧑‍🍳",
@@ -61,7 +59,7 @@ class _HomePageState extends State<HomePage> {
             Expanded(
               child: StreamBuilder(
                 stream: FirebaseFirestore.instance
-                    .collection('recipes') // Fetch posts collection
+                    .collection('recipes')
                     .orderBy('timestamp', descending: true)
                     .snapshots(),
                 builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
@@ -87,29 +85,28 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Update selected index when an icon is clicked
+
   void _onIconClicked(int index) {
     setState(() {
-      _selectedIndex = index; // Update the selected index
+      _selectedIndex = index;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_selectedIndex],  // Display the selected page based on _selectedIndex
+      body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: Colors.green,  // Color for selected item
-        unselectedItemColor: Colors.grey,  // Color for unselected items
-        currentIndex: _selectedIndex,  // Track the current selected index
-        onTap: _onIconClicked,  // Handle icon tap to update index
-        type: BottomNavigationBarType.fixed,  // Ensure all items are displayed
+        selectedItemColor: Colors.green,
+        unselectedItemColor: Colors.grey,
+        currentIndex: _selectedIndex,
+        onTap: _onIconClicked,
+        type: BottomNavigationBarType.fixed,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),  // Home tab
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),  // Search tab
-          BottomNavigationBarItem(icon: Icon(Icons.add), label: "Post"),  // Post tab
-          BottomNavigationBarItem(icon: Icon(Icons.notifications), label: "Notification"),  // Notification tab
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),  // Profile tab
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
+          BottomNavigationBarItem(icon: Icon(Icons.add), label: "Post"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),
     );
@@ -135,7 +132,7 @@ class _RecipeCardState extends State<RecipeCard> {
   void initState() {
     super.initState();
     var data = widget.recipe.data() as Map<String, dynamic>;
-    _likesCount = data['likes'].length; // Set initial like count
+    _likesCount = data['likes'].length;
     _isLiked = data['likes'].contains(FirebaseAuth.instance.currentUser!.uid); // Check if the current user has liked this post
   }
 
@@ -144,7 +141,7 @@ class _RecipeCardState extends State<RecipeCard> {
     String currentUserId = FirebaseAuth.instance.currentUser!.uid;
 
     if (_isLiked) {
-      // Un-like the post
+
       await FirebaseFirestore.instance.collection('recipes').doc(widget.recipe.id).update({
         'likes': FieldValue.arrayRemove([currentUserId]),
       });
@@ -153,7 +150,7 @@ class _RecipeCardState extends State<RecipeCard> {
         _isLiked = false;
       });
     } else {
-      // Like the post
+
       await FirebaseFirestore.instance.collection('recipes').doc(widget.recipe.id).update({
         'likes': FieldValue.arrayUnion([currentUserId]),
       });
@@ -182,8 +179,7 @@ class _RecipeCardState extends State<RecipeCard> {
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      _commentController.clear(); // Clear the input after posting
-
+      _commentController.clear();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Comment added")));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to add comment: $e")));
@@ -285,7 +281,8 @@ class _RecipeCardState extends State<RecipeCard> {
                     ),
                   ],
                 ),
-                // Displaying the comments section for this recipe
+
+                // displaying the comments section for this recipe
                 StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance.collection('recipes')
                       .doc(widget.recipe.id)
@@ -316,8 +313,6 @@ class _RecipeCardState extends State<RecipeCard> {
                         Timestamp timestamp = comment['timestamp'];
                         DateTime dateTime = timestamp.toDate();
 
-
-                        // Fetch the user's name based on the userId
                         return FutureBuilder<DocumentSnapshot>(
                         future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
                         builder: (context, userSnapshot) {
@@ -332,10 +327,10 @@ class _RecipeCardState extends State<RecipeCard> {
                         String userName = userSnapshot.data?.get('name') ?? 'Unknown User';
 
                         return ListTile(
-                            leading: Icon(Icons.account_circle), // Placeholder for user avatar
-                        title: Text(userName), // Display the user's name who commented
-                        subtitle: Text(commentText), // Display the comment text
-                        trailing: Text("${dateTime.hour}:${dateTime.minute}"), // Timestamp
+                            leading: Icon(Icons.account_circle),
+                        title: Text(userName),
+                        subtitle: Text(commentText),
+                        trailing: Text("${dateTime.hour}:${dateTime.minute}"),
                         );
                         },
                         );

@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:knowtocook/pages/home_page.dart';
-import 'dart:io';
-
 import 'package:knowtocook/pages/welcome_back_page.dart';
 
 class AccountCreationPage extends StatefulWidget {
@@ -18,17 +13,17 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
   final TextEditingController _bioController = TextEditingController();
 
   bool _isLoading = false;
-  String _profileImageUrl = ''; // Store the image URL entered by the user
+  String _profileImageUrl = '';
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // method to get an image URL from the user
   Future<void> _pickImageUrl() async {
-    String? imageUrl = await _showImageUrlDialog(context); // Existing method to show a dialog to enter URL
+    String? imageUrl = await _showImageUrlDialog(context);
     if (imageUrl != null && imageUrl.isNotEmpty) {
       setState(() {
-        _profileImageUrl = imageUrl; // Store the URL entered by the user
+        _profileImageUrl = imageUrl;
       });
     }
   }
@@ -46,13 +41,13 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
 
     try {
       String userId = _auth.currentUser!.uid;
-      // No need to upload image if the URL is provided
+
       String profileImageUrl = _profileImageUrl.isNotEmpty ? _profileImageUrl : '';
 
       await _firestore.collection('users').doc(userId).set({
         'name': _usernameController.text.trim(),
         'bio': _bioController.text.trim(),
-        'profileImage': profileImageUrl, // Save the online image URL or empty if not provided
+        'profileImage': profileImageUrl,
         'recipes': 0,
         'following': 0,
         'followers': 0,
@@ -112,11 +107,11 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
         child: Column(
           children: [
             GestureDetector(
-              onTap: _pickImageUrl, // Tap to input an online image URL
+              onTap: _pickImageUrl,
               child: CircleAvatar(
                 radius: 50,
                 backgroundImage: _profileImageUrl.isNotEmpty
-                    ? NetworkImage(_profileImageUrl) // Show online image URL
+                    ? NetworkImage(_profileImageUrl)
                     : const AssetImage("assets/default_avatar.png") as ImageProvider,
                 child: const Align(
                   alignment: Alignment.bottomRight,

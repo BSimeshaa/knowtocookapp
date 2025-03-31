@@ -3,7 +3,6 @@ import 'package:knowtocook/pages/home_page.dart';
 import 'package:knowtocook/pages/login_page.dart';
 import 'package:knowtocook/auth.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class WelcomeBackPage extends StatefulWidget {
   const WelcomeBackPage({super.key, required String userId});
@@ -124,7 +123,6 @@ class _WelcomeBackPageState extends State<WelcomeBackPage> {
               ),
 
               SizedBox(height: 10),
-              // Forgot password link
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -146,9 +144,7 @@ class _WelcomeBackPageState extends State<WelcomeBackPage> {
                     ? CircularProgressIndicator(color: Colors.white)
                     : Text("Login", style: TextStyle(color: Colors.white, fontSize: 18)),
               ),
-
               SizedBox(height: 20),
-              // Or continue with Google button
               Text("Or continue with", style: TextStyle(color: Colors.grey)),
               SizedBox(height: 10),
               ElevatedButton.icon(
@@ -161,9 +157,7 @@ class _WelcomeBackPageState extends State<WelcomeBackPage> {
                   padding: EdgeInsets.symmetric(vertical: 15, horizontal: 80),
                 ),
               ),
-
               SizedBox(height: 20),
-              // Sign Up link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -171,7 +165,7 @@ class _WelcomeBackPageState extends State<WelcomeBackPage> {
                   GestureDetector(
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => LoginPage()), // Replace with your SignUpPage
+                      MaterialPageRoute(builder: (context) => LoginPage()),
                     ),
                     child: Text(
                       "Sign Up",

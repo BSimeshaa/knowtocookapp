@@ -47,9 +47,9 @@ class RecipeDetailsPage extends StatelessWidget {
                 imageUrl.isNotEmpty
                     ? Image.network(
                   imageUrl,
-                  width: double.infinity, // Set width to fill the available space
-                  height: 250, // Set a fixed height for the image
-                  fit: BoxFit.cover, // This will ensure the image covers the rectangle proportionally
+                  width: double.infinity,
+                  height: 250,
+                  fit: BoxFit.cover,
                 )
                     : const Center(child: Icon(Icons.image_not_supported)),
                 // Title

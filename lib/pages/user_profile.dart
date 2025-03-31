@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:knowtocook/pages/login_page.dart';
 import 'package:knowtocook/pages/home_page.dart';
-import 'package:knowtocook/pages/recipe_details_page.dart'; // Import the RecipeDetailsPage
+import 'package:knowtocook/pages/recipe_details_page.dart';
 
 class UserProfilePage extends StatefulWidget {
   final String userId;
@@ -63,13 +63,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
     }
   }
 
-  // Method to sign out from the profile
   Future<void> _signOut() async {
     await _auth.signOut();
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) =>
-          LoginPage()), // Make sure LoginPage is properly defined
+          LoginPage()),
     );
   }
 
@@ -114,16 +113,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
-  // Navigate to home page when back button is clicked
   void _navigateToHomePage() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) =>
-          HomePage(userId: widget.userId)), // Pass userId if needed
+          HomePage(userId: widget.userId)),
     );
   }
 
-  // Method to delete a recipe from Firestore
   Future<void> _deleteRecipe(String recipeId) async {
     try {
       await _firestore.collection('recipes').doc(recipeId).delete();
@@ -135,7 +132,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
     }
   }
 
-  // Method to build the recipe card
   Widget _buildRecipeCard(DocumentSnapshot recipe, String recipeId) {
     String title = recipe['foodName'] ?? 'No Title';
     String imageUrl = recipe['imageUrl'] ?? '';
@@ -146,7 +142,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image Section
           imageUrl.isNotEmpty
               ? Image.network(
             imageUrl,
@@ -155,41 +150,38 @@ class _UserProfilePageState extends State<UserProfilePage> {
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
               return const Center(
-                  child: Icon(Icons.error)); // In case of image error
+                  child: Icon(Icons.error));
             },
           )
               : const Center(child: Icon(Icons.image_not_supported)),
 
-          // Title Section (still separate)
+
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
-              title, // Display the recipe title
+              title,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
-
-          // Buttons (Delete and View) Section in one row
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                // "Delete" Button
                 ElevatedButton(
-                  onPressed: () => _deleteRecipe(recipeId), // Delete recipe on button click
+                  onPressed: () => _deleteRecipe(recipeId),
                   child: const Text("Delete"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red, // Set button color to red
-                    minimumSize: Size(70, 30),  // Set minimum size for the button
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Adjust padding
+                    backgroundColor: Colors.red,
+                    minimumSize: Size(70, 30),
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   ),
                 ),
-                SizedBox(width: 8), // Space between the buttons
+                SizedBox(width: 8),
                 // "View" Button
                 ElevatedButton(
                   onPressed: () {
-                    // Navigate to RecipeDetailsPage, passing the recipeId
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -199,9 +191,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   },
                   child: const Text("View"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green, // Set button color to green
-                    minimumSize: Size(70, 30),    // Set minimum size for the button
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Adjust padding
+                    backgroundColor: Colors.green,
+                    minimumSize: Size(70, 30),
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   ),
                 ),
               ],
@@ -216,7 +208,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore.collection('recipes')
           .where('userID', isEqualTo: widget.userId)
-          .orderBy('timestamp', descending: true) // Make sure timestamp exists
+          .orderBy('timestamp', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -234,16 +226,16 @@ class _UserProfilePageState extends State<UserProfilePage> {
         return GridView.builder(
           padding: const EdgeInsets.all(10),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, // Two columns
-            crossAxisSpacing: 10, // Spacing between columns
-            mainAxisSpacing: 10, // Spacing between rows
+            crossAxisCount: 2,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
           ),
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
             var recipe = snapshot.data!.docs[index];
             String recipeId = recipe.id;
 
-            return _buildRecipeCard(recipe, recipeId); // Display each recipe with delete and view buttons
+            return _buildRecipeCard(recipe, recipeId);
           },
         );
       },
@@ -256,9 +248,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
   Widget _buildLikedRecipes() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('recipes') // Fetch recipes collection
-          .where('likes', arrayContains: widget.userId) // Check if the userId is in the 'likes' array
-          .orderBy('timestamp', descending: true) // Ensure recipes are sorted by timestamp
+          .collection('recipes')
+          .where('likes', arrayContains: widget.userId)
+          .orderBy('timestamp', descending: true)
           .snapshots(),
       builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -276,14 +268,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
         return GridView.builder(
           padding: const EdgeInsets.all(10),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, // Two columns
-            crossAxisSpacing: 10, // Spacing between columns
-            mainAxisSpacing: 10, // Spacing between rows
+            crossAxisCount: 2,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
           ),
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
             var recipe = snapshot.data!.docs[index];
-            return _buildRecipeCard01(recipe); // Display each liked recipe in a card
+            return _buildRecipeCard01(recipe);
           },
         );
       },
@@ -293,12 +285,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
   Widget _buildRecipeCard01(QueryDocumentSnapshot recipe) {
     var data = recipe.data() as Map<String, dynamic>;
 
-    // Safely access the fields from Firestore data
-    String title = data['foodName'] ?? 'No Title'; // Provide a default value if 'foodName' is missing
-    String imageUrl = data['imageUrl'] ?? ''; // Default to empty string if no imageUrl
-    String recipeId = recipe.id; // Get the recipe ID
+    String title = data['foodName'] ?? 'No Title';
+    String imageUrl = data['imageUrl'] ?? '';
+    String recipeId = recipe.id;
 
-    // Check if the current user has liked the recipe
     bool isLiked = data['likes'].contains(FirebaseAuth.instance.currentUser!.uid);
 
     return Card(
@@ -307,38 +297,32 @@ class _UserProfilePageState extends State<UserProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image Section with fixed height
           imageUrl.isNotEmpty
               ? Container(
-            height: 70, // Adjust height to fit the image better
+            height: 70,
             width: double.infinity,
             child: Image.network(
               imageUrl,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
-                return const Center(child: Icon(Icons.error)); // In case the image is broken
+                return const Center(child: Icon(Icons.error));
               },
             ),
           )
-              : const Center(child: Icon(Icons.image_not_supported)), // Display when no image URL is provided
-
-          // Title Section
+              : const Center(child: Icon(Icons.image_not_supported)),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
-              title, // Display the recipe title
+              title,
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
           ),
-
-          // "Cook" Button Section - Show only for liked recipes
           if (isLiked) ...[
             Positioned(
               bottom: 8,
               right: 8,
               child: ElevatedButton(
                 onPressed: () {
-                  // Navigate to RecipeDetailsPage, passing the recipeId
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -348,9 +332,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 },
                 child: Text("Cook"),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green, // Set button color
-                  minimumSize: Size(100, 40),    // Set minimum size for the button
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 10), // Optional: Adjust padding
+                  backgroundColor: Colors.green,
+                  minimumSize: Size(100, 40),
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 10),
                 ),
               ),
             ),

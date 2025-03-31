@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -45,36 +44,36 @@ class _RecipeCreationPageState extends State<RecipeCreationPage> {
       String userId = widget.userId;
       String imageUrl = _imageUrlController.text;
 
-      // Collect ingredients and steps
+
       List<String> ingredients = _ingredientControllers.map((c) => c.text).toList();
       List<String> steps = _stepControllers.map((c) => c.text).toList();
 
-      // Prepare the post structure
+
       var postData = {
-        'userID': userId,                     // User who created the post
-        'foodName': _foodNameController.text,  // Recipe title
-        'description': _descriptionController.text,  // Description
-        'cookingDuration': _cookingDuration,   // Cooking duration
-        'ingredients': ingredients,           // Ingredients list
-        'steps': steps,                       // Steps list
-        'imageUrl': imageUrl,                 // Recipe image URL
-        'likes': [],                           // Empty list for likes
-        'comments': [],                        // Empty list for comments
-        'timestamp': FieldValue.serverTimestamp(),  // Timestamp when the post is created
+        'userID': userId,
+        'foodName': _foodNameController.text,
+        'description': _descriptionController.text,
+        'cookingDuration': _cookingDuration,
+        'ingredients': ingredients,
+        'steps': steps,
+        'imageUrl': imageUrl,
+        'likes': [],
+        'comments': [],
+        'timestamp': FieldValue.serverTimestamp(),
       };
 
-      // Save recipe details to Firestore under 'recipes' collection
+
       await _firestore.collection('recipes').add(postData);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Recipe uploaded successfully!")),
       );
 
-      // Navigate to the home page immediately
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => HomePage(userId: widget.userId),  // Navigate to the home page
+          builder: (context) => HomePage(userId: widget.userId),
         ),
       );
 
@@ -105,15 +104,15 @@ class _RecipeCreationPageState extends State<RecipeCreationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false, // Remove default back button
+        automaticallyImplyLeading: false,
         title: Row(
           children: [
             IconButton(
-              icon: Icon(Icons.arrow_back), // Custom back arrow
+              icon: Icon(Icons.arrow_back),
               onPressed: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => HomePage(userId: widget.userId)), // Navigate to HomePage
+                  MaterialPageRoute(builder: (context) => HomePage(userId: widget.userId)),
                 );
               },
             ),

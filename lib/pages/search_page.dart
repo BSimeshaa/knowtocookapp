@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:knowtocook/pages/home_page.dart'; // Import HomePage
-import 'package:knowtocook/pages/recipe_details_page.dart'; // Import the Recipe Details Page
+import 'package:knowtocook/pages/home_page.dart';
+import 'package:knowtocook/pages/recipe_details_page.dart';
+
 
 class SearchPage extends StatefulWidget {
   const SearchPage({Key? key}) : super(key: key);
@@ -12,12 +13,12 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   TextEditingController searchController = TextEditingController();
-  String searchQuery = ''; // For search query
+  String searchQuery = '';
   bool showFilter = false;
   List<String> recentSearches = [
     "Pancakes",
     "Salad"
-  ]; // Example recent searches
+  ];
   List<String> searchSuggestions = [
     "sushi",
     "sandwich",
@@ -25,14 +26,14 @@ class _SearchPageState extends State<SearchPage> {
     "fried rice"
   ];
 
-  // Search function based on user input
+
   Future<QuerySnapshot> _searchRecipes() async {
     return await FirebaseFirestore.instance
         .collection('recipes')
         .where('foodName',
-        isGreaterThanOrEqualTo: searchQuery) // Search recipes by name
+        isGreaterThanOrEqualTo: searchQuery)
         .where('foodName',
-        isLessThanOrEqualTo: '$searchQuery\uf8ff') // Ensure search works with a prefix
+        isLessThanOrEqualTo: '$searchQuery\uf8ff')
         .get();
   }
 
@@ -48,7 +49,7 @@ class _SearchPageState extends State<SearchPage> {
               onPressed: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => HomePage(userId: 'user123')), // Navigate to HomePage
+                  MaterialPageRoute(builder: (context) => HomePage(userId: 'user123')),
                 );
               },
             ),
@@ -93,7 +94,6 @@ class _SearchPageState extends State<SearchPage> {
                   },
                 ),
                 SizedBox(height: 10),
-                // Search results
                 Expanded(
                   child: FutureBuilder<QuerySnapshot>(
                     future: _searchRecipes(),
@@ -146,9 +146,9 @@ class _SearchPageState extends State<SearchPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image Section with a fixed size
+
           Container(
-            height: 150, // Fixed height for the image
+            height: 150,
             width: double.infinity,
             child: imageUrl.isNotEmpty
                 ? Image.network(
@@ -173,19 +173,17 @@ class _SearchPageState extends State<SearchPage> {
               description,
               style: TextStyle(color: Colors.grey[600]),
               overflow: TextOverflow.ellipsis,
-              maxLines: 4, // Limit description to 2 lines
+              maxLines: 4,
             ),
           ),
-          // Spacer to push button to the bottom
           Spacer(),
-          // Cook Button Section
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Align(
-              alignment: Alignment.bottomRight, // Align button to bottom-right
+              alignment: Alignment.bottomRight,
               child: ElevatedButton(
                 onPressed: () {
-                  // Navigate to RecipeDetailsPage with the recipeId
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(

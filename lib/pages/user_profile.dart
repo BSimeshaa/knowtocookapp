@@ -41,10 +41,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   Future<void> _loadUserProfile() async {
     try {
-      DocumentSnapshot userDoc = await _firestore.collection('users').doc(
-          widget.userId).get();
+      // Fetching user data from Firestore
+      DocumentSnapshot userDoc = await _firestore.collection('users').doc(widget.userId).get();
 
+      // Check if the document exists
       if (userDoc.exists) {
+        print("User data fetched: ${userDoc.data()}");
         setState(() {
           username = userDoc['name'] ?? '';
           bio = userDoc['bio'] ?? '';
@@ -52,6 +54,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
           recipes = userDoc['recipes'] ?? 0;
           following = userDoc['following'] ?? 0;
           followers = userDoc['followers'] ?? 0;
+          isLoading = false;
+        });
+      } else {
+        print("No user data found for userId: ${widget.userId}");
+        setState(() {
           isLoading = false;
         });
       }
@@ -67,8 +74,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     await _auth.signOut();
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) =>
-          LoginPage()),
+      MaterialPageRoute(builder: (context) => LoginPage()),
     );
   }
 
@@ -95,8 +101,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
           title: Text("Enter Image URL"),
           content: TextField(
             controller: controller,
-            decoration: InputDecoration(
-                hintText: "https://example.com/image.jpg"),
+            decoration: InputDecoration(hintText: "https://example.com/image.jpg"),
           ),
           actions: [
             TextButton(
@@ -116,19 +121,16 @@ class _UserProfilePageState extends State<UserProfilePage> {
   void _navigateToHomePage() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) =>
-          HomePage(userId: widget.userId)),
+      MaterialPageRoute(builder: (context) => HomePage(userId: widget.userId)),
     );
   }
 
   Future<void> _deleteRecipe(String recipeId) async {
     try {
       await _firestore.collection('recipes').doc(recipeId).delete();
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Recipe deleted')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Recipe deleted')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -149,19 +151,13 @@ class _UserProfilePageState extends State<UserProfilePage> {
             height: 70,
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
-              return const Center(
-                  child: Icon(Icons.error));
+              return const Center(child: Icon(Icons.error));
             },
           )
               : const Center(child: Icon(Icons.image_not_supported)),
-
-
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
+            child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
@@ -178,10 +174,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   ),
                 ),
                 SizedBox(width: 8),
-                // "View" Button
                 ElevatedButton(
                   onPressed: () {
-
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -241,9 +235,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
       },
     );
   }
-
-
-
 
   Widget _buildLikedRecipes() {
     return StreamBuilder<QuerySnapshot>(
@@ -434,7 +425,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     child: TabBarView(
                       children: [
                         buildUserRecipesList(context),
-                         _buildLikedRecipes()
+                        _buildLikedRecipes()
                       ],
                     ),
                   ),

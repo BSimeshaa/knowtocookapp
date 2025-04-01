@@ -22,6 +22,10 @@ class UserProfilePage extends StatefulWidget {
 }
 
 class _UserProfilePageState extends State<UserProfilePage> {
+
+  bool _isFollowing = false;
+  int _followersCount = 0;
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -37,6 +41,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   void initState() {
     super.initState();
     _loadUserProfile();
+    _checkIfFollowing();
   }
 
   Future<void> _loadUserProfile() async {
@@ -69,6 +74,61 @@ class _UserProfilePageState extends State<UserProfilePage> {
       });
     }
   }
+
+// Function to check if the current user is following the target user
+  Future<void> _checkIfFollowing() async {
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.targetUserId)
+        .get();
+
+    // Fetching followers from the target user's document
+    List<dynamic> followers = userDoc['followers'] ?? [];
+
+    // Checking if the current user is in the followers list
+    setState(() {
+      _isFollowing = followers.contains(widget.currentUserId);
+      _followersCount = followers.length;
+    });
+  }
+
+// Function to follow/unfollow
+  Future<void> _toggleFollow() async {
+    String currentUserId = widget.currentUserId;
+    String targetUserId = widget.targetUserId;
+
+    // Perform the follow/unfollow operation
+    if (_isFollowing) {
+      // Unfollow the user
+      await FirebaseFirestore.instance.collection('users').doc(targetUserId).update({
+        'followers': FieldValue.arrayRemove([currentUserId]),
+      });
+      await FirebaseFirestore.instance.collection('users').doc(currentUserId).update({
+        'following': FieldValue.arrayRemove([targetUserId]),
+      });
+
+      // Update follower count locally
+      setState(() {
+        _isFollowing = false;
+        _followersCount--; // Decrement follower count by 1
+      });
+    } else {
+      // Follow the user
+      await FirebaseFirestore.instance.collection('users').doc(targetUserId).update({
+        'followers': FieldValue.arrayUnion([currentUserId]),
+      });
+      await FirebaseFirestore.instance.collection('users').doc(currentUserId).update({
+        'following': FieldValue.arrayUnion([targetUserId]),
+      });
+
+      // Update follower count locally
+      setState(() {
+        _isFollowing = true;
+        _followersCount++; // Increment follower count by 1
+      });
+    }
+  }
+
 
   Future<void> _signOut() async {
     await _auth.signOut();
@@ -132,6 +192,170 @@ class _UserProfilePageState extends State<UserProfilePage> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: Row(
+          children: [
+            IconButton(
+              icon: Icon(Icons.arrow_back),
+              onPressed: _navigateToHomePage,
+            ),
+            Text("Profile", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout, color: Colors.red),
+            onPressed: _signOut,
+          ),
+        ],
+      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    blurRadius: 10,
+                    spreadRadius: 3,
+                  ),
+                ],
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
+              ),
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: () async {
+                      String? imageUrl = await _showImageUrlDialog(context);
+                      if (imageUrl != null && imageUrl.isNotEmpty) {
+                        _updateProfilePicture(imageUrl);
+                      }
+                    },
+                    child: CircleAvatar(
+                      backgroundImage: profileImageUrl.isNotEmpty
+                          ? NetworkImage(profileImageUrl)
+                          : AssetImage('assets/default_avatar.png') as ImageProvider,
+                      radius: 50,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(username, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 5),
+                  Text(bio, style: TextStyle(color: Colors.grey[600])),
+                  SizedBox(height: 15),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Follower Count with Clickable Text
+                      GestureDetector(
+                        onTap: _showFollowersList, // Function to show followers list
+                        child: Text(
+                          'Followers: $_followersCount',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      SizedBox(height: 16),
+
+                      // Follow Button
+                      ElevatedButton(
+                        onPressed: _toggleFollow,
+                        child: Text(_isFollowing ? 'Unfollow' : 'Follow'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _isFollowing ? Colors.red : Colors.green,
+                        ),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+            ),
+            DefaultTabController(
+              length: 2,
+              child: Column(
+                children: [
+                  const TabBar(
+                    labelColor: Colors.black,
+                    unselectedLabelColor: Colors.grey,
+                    indicatorColor: Colors.green,
+                    tabs: [
+                      Tab(text: "Recipes"),
+                      Tab(text: "Liked"),
+                    ],
+                  ),
+                  SizedBox(
+                    height: 500,
+                    child: TabBarView(
+                      children: [
+                        buildUserRecipesList(context),
+                        _buildLikedRecipes(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+// Function to show the list of followers in a bottom sheet
+  void _showFollowersList() async {
+    // Fetch followers of the target user
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.targetUserId)
+        .get();
+
+    // List of follower IDs
+    List<dynamic> followerIds = userDoc['followers'] ?? [];
+
+    // Fetch the details of each follower
+    List<String> followerNames = [];
+    for (var followerId in followerIds) {
+      DocumentSnapshot followerDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(followerId)
+          .get();
+      if (followerDoc.exists) {
+        followerNames.add(followerDoc['name'] ?? 'Unknown');
+      }
+    }
+
+    // Show the list in a modal bottom sheet
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.all(16),
+          child: ListView.builder(
+            itemCount: followerNames.length,
+            itemBuilder: (context, index) {
+              return ListTile(
+                title: Text(followerNames[index]),
+              );
+            },
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildRecipeCard(DocumentSnapshot recipe, String recipeId) {
@@ -331,109 +555,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
             ),
           ],
         ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Row(
-          children: [
-            IconButton(
-              icon: Icon(Icons.arrow_back),
-              onPressed: _navigateToHomePage,
-            ),
-            Text("Profile", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.logout, color: Colors.red),
-            onPressed: _signOut,
-          ),
-        ],
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
-                    blurRadius: 10,
-                    spreadRadius: 3,
-                  ),
-                ],
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-              ),
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: () async {
-                      String? imageUrl = await _showImageUrlDialog(context);
-                      if (imageUrl != null && imageUrl.isNotEmpty) {
-                        _updateProfilePicture(imageUrl);
-                      }
-                    },
-                    child: CircleAvatar(
-                      backgroundImage: profileImageUrl.isNotEmpty
-                          ? NetworkImage(profileImageUrl)
-                          : AssetImage('assets/default_avatar.png') as ImageProvider,
-                      radius: 50,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Text(username, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 5),
-                  Text(bio, style: TextStyle(color: Colors.grey[600])),
-                  SizedBox(height: 15),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [],
-                  ),
-                ],
-              ),
-            ),
-            DefaultTabController(
-              length: 2,
-              child: Column(
-                children: [
-                  const TabBar(
-                    labelColor: Colors.black,
-                    unselectedLabelColor: Colors.grey,
-                    indicatorColor: Colors.green,
-                    tabs: [
-                      Tab(text: "Recipes"),
-                      Tab(text: "Liked"),
-                    ],
-                  ),
-                  SizedBox(
-                    height: 500,
-                    child: TabBarView(
-                      children: [
-                        buildUserRecipesList(context),
-                        _buildLikedRecipes()
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

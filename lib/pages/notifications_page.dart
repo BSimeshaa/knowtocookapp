@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:knowtocook/pages/home_page.dart'; // Import HomePage
+import 'package:knowtocook/pages/home_page.dart';
 
 class NotificationsPage extends StatefulWidget {
   final String currentUserID;
@@ -17,7 +17,6 @@ class NotificationsPage extends StatefulWidget {
 class _NotificationsPageState extends State<NotificationsPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Method to build each notification card
   Widget _buildNotificationCard(DocumentSnapshot notification, String notificationId) {
     String message = notification['message'] ?? 'No message';
     String triggeredBy = notification['triggeredBy'] ?? 'Unknown';
@@ -29,10 +28,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
       child: ListTile(
         leading: CircleAvatar(
           radius: 20,
-          backgroundImage: NetworkImage('https://example.com/user-avatar.jpg'), // Replace with actual avatar URL
+          backgroundImage: NetworkImage('https://example.com/user-avatar.jpg'),
         ),
         title: Text("$triggeredBy $message"),
-        subtitle: Text('Action Type: $actionType'),  // Display action type (like or comment)
+        subtitle: Text('Action Type: $actionType'),
         trailing: IconButton(
           icon: Icon(Icons.delete, color: Colors.red),
           onPressed: () {
@@ -42,8 +41,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
       ),
     );
   }
-
-  // Method to delete a notification from Firestore
   Future<void> _deleteNotification(String notificationId) async {
     try {
       await _firestore.collection('notifications').doc(notificationId).delete();
@@ -75,7 +72,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       body: StreamBuilder<QuerySnapshot>(
         stream: _firestore
             .collection('notifications')
-            .where('userId', isEqualTo: widget.currentUserID) // Filter by userId only
+            .where('userId', isEqualTo: widget.currentUserID)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -96,7 +93,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
               var notification = snapshot.data!.docs[index];
               String notificationId = notification.id;
 
-              return _buildNotificationCard(notification, notificationId); // Display each notification card
+              return _buildNotificationCard(notification, notificationId);
             },
           );
         },

@@ -81,7 +81,7 @@ class _AccountCreationPageState extends State<AccountCreationPage> {
     }
   }
 
-  // method to store the profile pic - requires firebase storage access
+  // method to store the profile pic - requires firebase storage access, therefore we have use online images for our app.
  Future<String?> _uploadProfileImage(String userId) async {
     if (_profileImage == null) return null;
 

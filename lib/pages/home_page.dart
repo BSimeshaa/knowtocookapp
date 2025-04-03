@@ -32,7 +32,7 @@ class _HomePageState extends State<HomePage> {
       _buildHomePage(),
       SearchPage(),
       RecipeCreationPage(userId: widget.userId),
-      NotificationsPage(currentUserID: widget.userId),  // Ensure currentUserID is passed correctly
+      NotificationsPage( currentUserID:  widget.userId,),
       UserProfilePage(
         userId: widget.userId,
         currentUserId: widget.userId,
@@ -56,7 +56,7 @@ class _HomePageState extends State<HomePage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => AdminLoginPage(), // Navigate to AdminLoginPage
+                    builder: (context) => AdminLoginPage(),
                   ),
                 );
               },
@@ -149,7 +149,7 @@ class _RecipeCardState extends State<RecipeCard> {
     var data = widget.recipe.data() as Map<String, dynamic>;
     _likesCount = data['likes'].length;
     _isLiked = data['likes'].contains(FirebaseAuth.instance.currentUser!
-        .uid); // Check if the current user has liked this post
+        .uid);
   }
 
   Future<void> _toggleLike() async {
@@ -215,7 +215,6 @@ class _RecipeCardState extends State<RecipeCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Fetch the user data to get the name of the person who posted the recipe
           FutureBuilder<DocumentSnapshot>(
             future: FirebaseFirestore.instance.collection('users').doc(data['userID']).get(),
             builder: (context, userSnapshot) {
@@ -226,14 +225,11 @@ class _RecipeCardState extends State<RecipeCard> {
               if (userSnapshot.hasError) {
                 return Center(child: Text('Error fetching user data: ${userSnapshot.error}'));
               }
-
-              // Get the user's name or set 'Unknown User' as a fallback
               String userName = userSnapshot.data?.get('name') ?? 'Unknown User';
-              String profileImageUrl = userSnapshot.data?.get('profileImage') ?? ''; // Assuming the profile image is stored in 'profileImage'
+              String profileImageUrl = userSnapshot.data?.get('profileImage') ?? '';
 
               return GestureDetector(
                 onTap: () {
-                  // Navigate to the user's profile page when their name is clicked
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -249,16 +245,16 @@ class _RecipeCardState extends State<RecipeCard> {
                   padding: const EdgeInsets.all(8.0),
                   child: Row(
                     children: [
-                      // Display the profile picture next to the name
+
                       CircleAvatar(
                         radius: 20,
                         backgroundImage: profileImageUrl.isNotEmpty
-                            ? NetworkImage(profileImageUrl) // Use network image if URL exists
-                            : AssetImage('assets/default_avatar.png') as ImageProvider, // Fallback to default image
+                            ? NetworkImage(profileImageUrl)
+                            : AssetImage('assets/default_avatar.png') as ImageProvider,
                       ),
-                      SizedBox(width: 8), // Space between the profile image and name
+                      SizedBox(width: 8),
                       Text(
-                        userName, // Display the user's name
+                        userName,
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -361,7 +357,6 @@ class _RecipeCardState extends State<RecipeCard> {
                     ),
                   ],
                 ),
-                // displaying the comments section for this recipe
                 StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('recipes')
@@ -408,10 +403,10 @@ class _RecipeCardState extends State<RecipeCard> {
                             String userName = userSnapshot.data?.get('name') ?? 'Unknown User';
 
                             return ListTile(
-                              leading: Icon(Icons.account_circle), // Placeholder for user avatar
-                              title: Text(userName), // Display the user's name who commented
-                              subtitle: Text(commentText), // Display the comment text
-                              trailing: Text("${dateTime.hour}:${dateTime.minute}"), // Timestamp
+                              leading: Icon(Icons.account_circle),
+                              title: Text(userName),
+                              subtitle: Text(commentText),
+                              trailing: Text("${dateTime.hour}:${dateTime.minute}"),
                             );
                           },
                         );
@@ -420,23 +415,29 @@ class _RecipeCardState extends State<RecipeCard> {
                   },
                 ),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.end,  // Aligns the button to the right
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
                       onPressed: () {
-                        // Assuming 'recipeId' is available in the current context, pass it to the ToCookPage
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ToCookPage(recipeId: widget.recipe.id),  // Pass the recipeId here
+                            builder: (context) => ToCookPage(recipeId: widget.recipe.id),
                           ),
                         );
                       },
-                      child: Text(
-                        "To Cook",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,  // Makes the text bold
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "To Cook",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(width: 5), // Spacing between text and icon
+                          Icon(Icons.arrow_forward, size: 16),
+                        ],
                       ),
                     ),
                   ],

@@ -20,8 +20,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
   // Method to build each notification card
   Widget _buildNotificationCard(DocumentSnapshot notification, String notificationId) {
     String message = notification['message'] ?? 'No message';
-    String triggeredBy = notification['triggeredBy'] ?? 'Unknown';  // Using triggeredBy here
-    Timestamp timestamp = notification['timestamp'];
+    String triggeredBy = notification['triggeredBy'] ?? 'Unknown';
+    String actionType = notification['actionType'] ?? 'Unknown';
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -31,8 +31,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
           radius: 20,
           backgroundImage: NetworkImage('https://example.com/user-avatar.jpg'), // Replace with actual avatar URL
         ),
-        title: Text("$triggeredBy $message"), // Display who triggered the notification
-        subtitle: Text('At ${timestamp.toDate()}'),
+        title: Text("$triggeredBy $message"),
+        subtitle: Text('Action Type: $actionType'),  // Display action type (like or comment)
         trailing: IconButton(
           icon: Icon(Icons.delete, color: Colors.red),
           onPressed: () {
@@ -57,29 +57,25 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false, // Remove the default back button
-        title: Row(
-          children: [
-            IconButton(
-              icon: Icon(Icons.arrow_back), // Custom back arrow
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => HomePage(userId: widget.currentUserID)), // Navigate to HomePage
-                );
-              },
-            ),
-            Text("Notifications", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          ],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => HomePage(userId: widget.currentUserID),
+              ),
+            );
+          },
         ),
+        title: const Text("Notifications", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black)),
         backgroundColor: Colors.white,
         elevation: 0,
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _firestore
             .collection('notifications')
-            .where('userId', isEqualTo: widget.currentUserID) // Fetch notifications for the current user
-            .orderBy('timestamp', descending: true) // Order notifications by timestamp
+            .where('userId', isEqualTo: widget.currentUserID) // Filter by userId only
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -98,7 +94,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
               var notification = snapshot.data!.docs[index];
-              String notificationId = notification.id; // Access the document ID
+              String notificationId = notification.id;
 
               return _buildNotificationCard(notification, notificationId); // Display each notification card
             },

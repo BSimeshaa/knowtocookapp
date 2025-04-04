@@ -4,7 +4,7 @@ import 'package:knowtocook/pages/login_page.dart';
 class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    Future.delayed(Duration(seconds: 100), () {
+    Future.delayed(Duration(seconds: 500), () {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => LoginPage()),
